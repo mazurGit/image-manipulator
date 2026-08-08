@@ -1,0 +1,12 @@
+# CMake build output
+/build/
+/cmake-build-*/
+
+# Tool caches
+/.cache/
+
+# Generated compilation database
+/compile_commands.json
+
+# macOS
+.DS_Store
