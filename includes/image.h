@@ -63,6 +63,7 @@ public:
   Image &grayscale();
   Image &invert();
   Image &brightness(int difference);
+  Image &contrast(float factor);
   Image &flipHorizontal();
   Image &flipVertical();
   Image &rotate90(Rotation direction);

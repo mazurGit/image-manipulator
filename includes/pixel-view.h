@@ -16,6 +16,7 @@ public:
   Color toColor() const noexcept;
   PixelView &invert() noexcept;
   PixelView &adjustBrightness(int difference) noexcept;
+  PixelView &adjustContrast(float factor) noexcept;
 
   // Channel iteration
   template <typename Func>
