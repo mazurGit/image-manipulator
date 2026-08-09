@@ -10,8 +10,8 @@ int main() {
 
   {
     Image image;
-    image.load("assets/butterfly.jpeg");
-    image.resize(100, 200, ResizeFilter::Bilinear);
+    image.load("assets/butterfly.png");
+    image.crop(100, 100, 80, CropShape::Circle);
     image.save("assets/out.jpeg");
   }
 
