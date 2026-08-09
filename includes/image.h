@@ -47,8 +47,6 @@ public:
   Image &rotate90(Rotation direction);
   Image &resize(int width, int height,
                 ResizeFilter filter = ResizeFilter::Bilinear);
-  Image &resizeNearest(int width, int height);
-  Image &resizeBilinear(int width, int height);
 
 private:
   Buffer buffer_;
@@ -58,6 +56,10 @@ private:
   int width_ = 0;
   int height_ = 0;
   int channels_ = 0;
+
+  // Transformation
+  Image &resizeNearest(int width, int height);
+  Image &resizeBilinear(int width, int height);
 
   // Indexing helpers
   int pixelIndex(int x, int y) const;
