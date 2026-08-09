@@ -50,6 +50,13 @@ PixelView &PixelView::adjustBrightness(int difference) noexcept {
   return *this;
 }
 
+PixelView &PixelView::adjustContrast(float factor) noexcept {
+  forEachChannel([factor](std::uint8_t &color, int) {
+    color = pixel_math::applyContrast(color, factor);
+  });
+  return *this;
+}
+
 PixelView &PixelView::operator=(uint8_t uniColor) {
   forEachChannel([&](uint8_t &color, int) { color = uniColor; });
   return *this;

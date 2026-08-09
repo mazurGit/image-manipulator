@@ -135,6 +135,15 @@ Image &Image::brightness(int difference) {
   return *this;
 }
 
+Image &Image::contrast(float factor) {
+  if (!std::isfinite(factor)) {
+    throw std::invalid_argument("contrast factor must be finite");
+  }
+  forEachPixel(
+      [factor](PixelView &pixel) { pixel.adjustContrast(factor); });
+  return *this;
+}
+
 Image &Image::flipHorizontal() {
   const int xCenter = width_ / 2;
   for (int y = 0; y < height_; y++) {
