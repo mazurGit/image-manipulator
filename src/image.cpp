@@ -129,6 +129,12 @@ Image &Image::invert() {
   return *this;
 }
 
+Image &Image::brightness(int difference) {
+  forEachPixel(
+      [difference](PixelView &pixel) { pixel.adjustBrightness(difference); });
+  return *this;
+}
+
 Image &Image::flipHorizontal() {
   const int xCenter = width_ / 2;
   for (int y = 0; y < height_; y++) {
