@@ -57,6 +57,11 @@ PixelView &PixelView::adjustContrast(float factor) noexcept {
   return *this;
 }
 
+PixelView &PixelView::applyThreshold(std::uint8_t threshold) noexcept {
+  *this = luma() > threshold ? 255 : 0;
+  return *this;
+}
+
 PixelView &PixelView::operator=(uint8_t uniColor) {
   forEachChannel([&](uint8_t &color, int) { color = uniColor; });
   return *this;

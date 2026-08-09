@@ -144,6 +144,12 @@ Image &Image::contrast(float factor) {
   return *this;
 }
 
+Image &Image::threshold(std::uint8_t value) {
+  forEachPixel(
+      [value](PixelView &pixel) { pixel.applyThreshold(value); });
+  return *this;
+}
+
 Image &Image::flipHorizontal() {
   const int xCenter = width_ / 2;
   for (int y = 0; y < height_; y++) {

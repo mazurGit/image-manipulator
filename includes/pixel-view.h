@@ -17,6 +17,7 @@ public:
   PixelView &invert() noexcept;
   PixelView &adjustBrightness(int difference) noexcept;
   PixelView &adjustContrast(float factor) noexcept;
+  PixelView &applyThreshold(std::uint8_t threshold) noexcept;
 
   // Channel iteration
   template <typename Func>

@@ -64,6 +64,7 @@ public:
   Image &invert();
   Image &brightness(int difference);
   Image &contrast(float factor);
+  Image &threshold(std::uint8_t value);
   Image &flipHorizontal();
   Image &flipVertical();
   Image &rotate90(Rotation direction);
