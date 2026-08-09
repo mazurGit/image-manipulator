@@ -1,6 +1,5 @@
 
 #include <image.h>
-#include <iostream>
 #include <pixel-view.h>
 #include <vips/vips.h>
 
@@ -12,7 +11,7 @@ int main() {
   {
     Image image;
     image.load("assets/butterfly.jpeg");
-    image.grayscale();
+    image.rotate90(Rotation::CCW);
     image.save("assets/out.jpeg");
   }
 

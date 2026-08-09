@@ -11,12 +11,14 @@ public:
         std::uint8_t alpha = 255) noexcept
       : channels_{red, green, blue, alpha} {}
 
+  // Indexed access
   std::uint8_t &operator[](std::size_t index) { return channels_[index]; }
 
   const std::uint8_t &operator[](std::size_t index) const {
     return channels_[index];
   }
 
+  // Named channel access
   std::uint8_t &r() {
     return channels_[static_cast<std::size_t>(Channel::Red)];
   }

@@ -41,3 +41,10 @@ PixelView &PixelView::operator=(uint8_t uniColor) {
   forEachChannel([&](uint8_t &color, int) { color = uniColor; });
   return *this;
 }
+
+void swapPixel(PixelView a, PixelView b) noexcept {
+  int count = std::min(a.channels_, b.channels_);
+  for (int i = 0; i < count; ++i) {
+    std::swap(a.data_[i], b.data_[i]);
+  }
+}
