@@ -6,8 +6,8 @@
 namespace pixel_math {
 
 [[nodiscard]]
-constexpr std::uint8_t clampToByte(int value) noexcept {
-  return static_cast<std::uint8_t>(std::clamp(value, 0, 255));
+constexpr std::uint8_t clampToByte(std::int64_t value) noexcept {
+  return static_cast<std::uint8_t>(std::clamp<std::int64_t>(value, 0, 255));
 }
 
 [[nodiscard]]

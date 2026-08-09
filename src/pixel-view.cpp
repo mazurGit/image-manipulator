@@ -42,6 +42,14 @@ PixelView &PixelView::invert() noexcept {
   return *this;
 }
 
+PixelView &PixelView::adjustBrightness(int difference) noexcept {
+  forEachChannel([difference](std::uint8_t &color, int) {
+    color = pixel_math::clampToByte(static_cast<std::int64_t>(color) +
+                                    difference);
+  });
+  return *this;
+}
+
 PixelView &PixelView::operator=(uint8_t uniColor) {
   forEachChannel([&](uint8_t &color, int) { color = uniColor; });
   return *this;
