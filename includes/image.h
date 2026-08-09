@@ -61,6 +61,7 @@ public:
 
   // Transformations
   Image &grayscale();
+  Image &invert();
   Image &flipHorizontal();
   Image &flipVertical();
   Image &rotate90(Rotation direction);
