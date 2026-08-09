@@ -42,6 +42,13 @@ PixelView &PixelView::operator=(uint8_t uniColor) {
   return *this;
 }
 
+PixelView &PixelView::operator=(const PixelView &other) noexcept {
+  if (data_ != other.data_) {
+    std::copy_n(other.data_, std::min(channels_, other.channels_), data_);
+  }
+  return *this;
+}
+
 void swapPixel(PixelView a, PixelView b) noexcept {
   int count = std::min(a.channels_, b.channels_);
   for (int i = 0; i < count; ++i) {
