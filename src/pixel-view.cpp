@@ -37,6 +37,11 @@ uint8_t PixelView::luma() const {
   return static_cast<uint8_t>(result);
 }
 
+PixelView &PixelView::invert() noexcept {
+  forEachChannel([](std::uint8_t &color, int) { color = 255 - color; });
+  return *this;
+}
+
 PixelView &PixelView::operator=(uint8_t uniColor) {
   forEachChannel([&](uint8_t &color, int) { color = uniColor; });
   return *this;

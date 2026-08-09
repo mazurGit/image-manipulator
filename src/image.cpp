@@ -124,6 +124,11 @@ Image &Image::grayscale() {
   return *this;
 };
 
+Image &Image::invert() {
+  forEachPixel([](PixelView &pixel) { pixel.invert(); });
+  return *this;
+}
+
 Image &Image::flipHorizontal() {
   const int xCenter = width_ / 2;
   for (int y = 0; y < height_; y++) {

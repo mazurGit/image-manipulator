@@ -14,6 +14,7 @@ public:
   const std::uint8_t &getColor(Channel channel) const;
   std::uint8_t luma() const;
   Color toColor() const noexcept;
+  PixelView &invert() noexcept;
 
   // Channel iteration
   template <typename Func>
