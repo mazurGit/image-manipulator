@@ -101,12 +101,22 @@ uint8_t *Image::pixelPtr(uint8_t *buffer, int width, int x, int y) {
   return buffer + pixelIndex(x, y, width);
 }
 
-PixelView Image::at(int x, int y) {
-  return PixelView{pixelPtr(x, y), channels_};
+Image::Row Image::operator[](int y) noexcept {
+  return Row{pixelPtr(0, y), channels_};
 }
 
-PixelView Image::at(Buffer &buffer, int width, int x, int y) {
-  return PixelView{pixelPtr(buffer.get(), width, x, y), channels_};
+PixelView Image::at(int y, int x) {
+  if (!buffer_) {
+    throw std::runtime_error("cannot access an empty image");
+  }
+  if (y < 0 || y >= height_ || x < 0 || x >= width_) {
+    throw std::out_of_range("pixel coordinates are out of range");
+  }
+  return (*this)[y][x];
+}
+
+Image::Row Image::row(Buffer &buffer, int width, int y) noexcept {
+  return Row{pixelPtr(buffer.get(), width, 0, y), channels_};
 }
 
 Image &Image::grayscale() {
@@ -115,22 +125,24 @@ Image &Image::grayscale() {
 };
 
 Image &Image::flipHorizontal() {
-  int xCenter = width_ / 2;
-  for (int x = 0; x < xCenter; x++) {
-    int xRight = (width_ - 1) - x;
-    for (int y = 0; y < height_; y++) {
-      swapPixel(at(x, y), at(xRight, y));
-    };
+  const int xCenter = width_ / 2;
+  for (int y = 0; y < height_; y++) {
+    Row currentRow = (*this)[y];
+    for (int x = 0; x < xCenter; x++) {
+      swapPixel(currentRow[x], currentRow[width_ - 1 - x]);
+    }
   }
   return *this;
 };
 
 Image &Image::flipVertical() {
-  int yCenter = height_ / 2;
-  for (int x = 0; x < width_; x++) {
-    for (int y = 0; y < yCenter; y++) {
-      swapPixel(at(x, y), at(x, (height_ - 1) - y));
-    };
+  const int yCenter = height_ / 2;
+  for (int y = 0; y < yCenter; y++) {
+    Row topRow = (*this)[y];
+    Row bottomRow = (*this)[height_ - 1 - y];
+    for (int x = 0; x < width_; x++) {
+      swapPixel(topRow[x], bottomRow[x]);
+    }
   }
   return *this;
 };
@@ -169,14 +181,15 @@ Image &Image::resizeNearest(int width, int height) {
   Buffer temp{static_cast<uint8_t *>(g_malloc(newSize))};
 
   for (int y = 0; y < height; y++) {
+    const int srcY = static_cast<int>(
+        static_cast<std::int64_t>(y) * height_ / height);
+    Row destinationRow = row(temp, width, y);
+    Row sourceRow = (*this)[srcY];
+
     for (int x = 0; x < width; x++) {
       const int srcX = static_cast<int>(
           static_cast<std::int64_t>(x) * width_ / width);
-      const int srcY = static_cast<int>(
-          static_cast<std::int64_t>(y) * height_ / height);
-      PixelView dstPixel = at(temp, width, x, y);
-      PixelView srcPixel = at(srcX, srcY);
-      dstPixel = srcPixel;
+      destinationRow[x] = sourceRow[srcX];
     }
   }
 
