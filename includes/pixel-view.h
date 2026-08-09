@@ -28,6 +28,7 @@ public:
 
   // Operators
   PixelView &operator=(std::uint8_t color);
+  PixelView &operator=(const PixelView &other) noexcept;
 
   friend void swapPixel(PixelView a, PixelView b) noexcept;
   friend std::ostream &operator<<(std::ostream &os, const PixelView &pixel);

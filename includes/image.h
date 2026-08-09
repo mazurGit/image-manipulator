@@ -6,8 +6,16 @@
 #include <memory>
 
 enum class Rotation { CW, CCW };
+enum class ResizeFilter { NearestNeighbor, Bilinear };
 
 class Image {
+  // Buffer ownership
+  struct BufferDeleter {
+    void operator()(std::uint8_t *buffer) const noexcept;
+  };
+
+  using Buffer = std::unique_ptr<std::uint8_t, BufferDeleter>;
+
 public:
   // Lifetime
   Image() = default;
@@ -37,15 +45,12 @@ public:
   Image &flipHorizontal();
   Image &flipVertical();
   Image &rotate90(Rotation direction);
+  Image &resize(int width, int height,
+                ResizeFilter filter = ResizeFilter::Bilinear);
+  Image &resizeNearest(int width, int height);
+  Image &resizeBilinear(int width, int height);
 
 private:
-  // Buffer ownership
-  struct BufferDeleter {
-    void operator()(std::uint8_t *buffer) const noexcept;
-  };
-
-  using Buffer = std::unique_ptr<std::uint8_t, BufferDeleter>;
-
   Buffer buffer_;
   std::size_t size_ = 0;
 
@@ -59,4 +64,5 @@ private:
   int pixelIndex(int x, int y, int width) const;
   std::uint8_t *pixelPtr(int x, int y);
   std::uint8_t *pixelPtr(std::uint8_t *buffer, int width, int x, int y);
+  PixelView at(Buffer &buffer, int width, int x, int y);
 };

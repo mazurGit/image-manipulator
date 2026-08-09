@@ -78,10 +78,11 @@ uint8_t *Image::pixelPtr(uint8_t *buffer, int width, int x, int y) {
 }
 
 PixelView Image::at(int x, int y) {
-  int index = pixelIndex(x, y);
+  return PixelView{pixelPtr(x, y), channels_};
+}
 
-  PixelView pixel{buffer_.get() + index, channels_};
-  return pixel;
+PixelView Image::at(Buffer &buffer, int width, int x, int y) {
+  return PixelView{pixelPtr(buffer.get(), width, x, y), channels_};
 }
 
 Image &Image::grayscale() {
@@ -131,3 +132,32 @@ Image &Image::rotate90(Rotation direction) {
   height_ = newHeight;
   return *this;
 }
+
+Image &Image::resizeNearest(int width, int height) {
+  if (!buffer_) {
+    throw std::runtime_error("cannot resize an empty image");
+  }
+  if (width <= 0 || height <= 0) {
+    throw std::invalid_argument("image dimensions must be positive");
+  }
+
+  const std::size_t newSize =
+      static_cast<std::size_t>(width) * height * channels_;
+  Buffer temp{static_cast<uint8_t *>(g_malloc(newSize))};
+
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      int srcX = x * width_ / width;
+      int srcY = y * height_ / height;
+      PixelView dstPixel = at(temp, width, x, y);
+      PixelView srcPixel = at(srcX, srcY);
+      dstPixel = srcPixel;
+    }
+  }
+
+  buffer_ = std::move(temp);
+  size_ = newSize;
+  width_ = width;
+  height_ = height;
+  return *this;
+};
