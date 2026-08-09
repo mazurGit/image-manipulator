@@ -7,6 +7,7 @@
 
 enum class Rotation { CW, CCW };
 enum class ResizeFilter { NearestNeighbor, Bilinear };
+enum class CropShape { Square, Circle };
 
 class Image {
   // Buffer ownership
@@ -70,6 +71,8 @@ public:
   Image &rotate90(Rotation direction);
   Image &resize(int width, int height,
                 ResizeFilter filter = ResizeFilter::Bilinear);
+  Image &crop(int y, int x, int size,
+              CropShape shape = CropShape::Square);
 
 private:
   Buffer buffer_;
@@ -83,6 +86,8 @@ private:
   // Transformation
   Image &resizeNearest(int width, int height);
   Image &resizeBilinear(int width, int height);
+  Image &cropSquare(int y, int x, int size);
+  Image &cropCircle(int y, int x, int size);
 
   // Indexing helpers
   int pixelIndex(int x, int y) const;
