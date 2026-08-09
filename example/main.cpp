@@ -11,7 +11,7 @@ int main() {
   {
     Image image;
     image.load("assets/butterfly.jpeg");
-    image.rotate90(Rotation::CCW);
+    image.resize(100, 200, ResizeFilter::Bilinear);
     image.save("assets/out.jpeg");
   }
 

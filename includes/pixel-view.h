@@ -14,6 +14,8 @@ public:
   const std::uint8_t &getColor(Channel channel) const;
   std::uint8_t luma() const;
   Color toColor() const noexcept;
+  PixelView &invert() noexcept;
+  PixelView &adjustBrightness(int difference) noexcept;
 
   // Channel iteration
   template <typename Func>
@@ -28,6 +30,7 @@ public:
 
   // Operators
   PixelView &operator=(std::uint8_t color);
+  PixelView &operator=(const PixelView &other) noexcept;
 
   friend void swapPixel(PixelView a, PixelView b) noexcept;
   friend std::ostream &operator<<(std::ostream &os, const PixelView &pixel);

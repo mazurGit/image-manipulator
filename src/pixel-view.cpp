@@ -37,8 +37,28 @@ uint8_t PixelView::luma() const {
   return static_cast<uint8_t>(result);
 }
 
+PixelView &PixelView::invert() noexcept {
+  forEachChannel([](std::uint8_t &color, int) { color = 255 - color; });
+  return *this;
+}
+
+PixelView &PixelView::adjustBrightness(int difference) noexcept {
+  forEachChannel([difference](std::uint8_t &color, int) {
+    color = pixel_math::clampToByte(static_cast<std::int64_t>(color) +
+                                    difference);
+  });
+  return *this;
+}
+
 PixelView &PixelView::operator=(uint8_t uniColor) {
   forEachChannel([&](uint8_t &color, int) { color = uniColor; });
+  return *this;
+}
+
+PixelView &PixelView::operator=(const PixelView &other) noexcept {
+  if (data_ != other.data_) {
+    std::copy_n(other.data_, std::min(channels_, other.channels_), data_);
+  }
   return *this;
 }
 
