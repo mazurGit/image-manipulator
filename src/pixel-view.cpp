@@ -1,5 +1,4 @@
 #include "pixel-view.h"
-#include "color.h"
 #include "pixel-math.h"
 #include <cstdint>
 
@@ -12,10 +11,6 @@ uint8_t &PixelView::getColor(Channel channel) {
 
 const uint8_t &PixelView::getColor(Channel channel) const {
   return getColorImpl(*this, channel);
-}
-
-Color PixelView::toColor() const noexcept {
-  return Color{data_[0], data_[1], data_[2], data_[3]};
 }
 
 std::ostream &operator<<(std::ostream &os, const PixelView &pixel) {

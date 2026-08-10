@@ -1,6 +1,6 @@
 #pragma once
 
-#include "color.h"
+#include "channel.h"
 #include <algorithm>
 #include <cstdint>
 #include <ostream>
@@ -13,7 +13,6 @@ public:
   std::uint8_t &getColor(Channel channel);
   const std::uint8_t &getColor(Channel channel) const;
   std::uint8_t luma() const;
-  Color toColor() const noexcept;
   PixelView &invert() noexcept;
   PixelView &adjustBrightness(int difference) noexcept;
   PixelView &adjustContrast(float factor) noexcept;

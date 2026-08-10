@@ -8,6 +8,10 @@
 enum class Rotation { CW, CCW };
 enum class ResizeFilter { NearestNeighbor, Bilinear };
 enum class CropShape { Square, Circle };
+struct PixelPosition {
+  int x;
+  int y;
+};
 
 class Image {
   // Buffer ownership
@@ -55,7 +59,11 @@ public:
       Row currentRow = (*this)[y];
       for (int x = 0; x < width_; x++) {
         PixelView pixel = currentRow[x];
-        func(pixel);
+        if constexpr (std::is_invocable_v<Func &, PixelView, PixelPosition>) {
+          func(pixel, PixelPosition{x, y});
+        } else {
+          func(pixel);
+        }
       }
     }
   }
@@ -71,8 +79,8 @@ public:
   Image &rotate90(Rotation direction);
   Image &resize(int width, int height,
                 ResizeFilter filter = ResizeFilter::Bilinear);
-  Image &crop(int y, int x, int size,
-              CropShape shape = CropShape::Square);
+  Image &crop(int y, int x, int size, CropShape shape = CropShape::Square);
+  Image &blur(int radius);
 
 private:
   Buffer buffer_;

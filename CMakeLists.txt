@@ -11,8 +11,10 @@ pkg_check_modules(VIPS REQUIRED vips-cpp)
 add_library(
     image_engine
     STATIC
+    src/color-accumulator.cpp
     src/image.cpp
     src/pixel-view.cpp
+    src/timer.cpp
 )
 
 add_library(
