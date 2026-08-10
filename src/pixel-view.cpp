@@ -1,5 +1,4 @@
 #include "pixel-view.h"
-#include "color.h"
 #include "pixel-math.h"
 #include <cstdint>
 
@@ -12,10 +11,6 @@ uint8_t &PixelView::getColor(Channel channel) {
 
 const uint8_t &PixelView::getColor(Channel channel) const {
   return getColorImpl(*this, channel);
-}
-
-Color PixelView::toColor() const noexcept {
-  return Color{data_[0], data_[1], data_[2], data_[3]};
 }
 
 std::ostream &operator<<(std::ostream &os, const PixelView &pixel) {
@@ -47,6 +42,18 @@ PixelView &PixelView::adjustBrightness(int difference) noexcept {
     color = pixel_math::clampToByte(static_cast<std::int64_t>(color) +
                                     difference);
   });
+  return *this;
+}
+
+PixelView &PixelView::adjustContrast(float factor) noexcept {
+  forEachChannel([factor](std::uint8_t &color, int) {
+    color = pixel_math::applyContrast(color, factor);
+  });
+  return *this;
+}
+
+PixelView &PixelView::applyThreshold(std::uint8_t threshold) noexcept {
+  *this = luma() > threshold ? 255 : 0;
   return *this;
 }
 

@@ -11,7 +11,7 @@ int main() {
   {
     Image image;
     image.load("assets/butterfly.jpeg");
-    image.resize(100, 200, ResizeFilter::Bilinear);
+    image.blur(3);
     image.save("assets/out.jpeg");
   }
 
