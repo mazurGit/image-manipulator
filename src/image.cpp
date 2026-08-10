@@ -1,4 +1,5 @@
 #include "image.h"
+#include "color-accumulator.h"
 #include "pixel-math.h"
 #include "pixel-view.h"
 #include <algorithm>
@@ -34,6 +35,14 @@ void Image::BufferDeleter::operator()(std::uint8_t *buffer) const noexcept {
   g_free(buffer);
 }
 
+void Image::replaceBuffer(Buffer buffer, std::size_t size, int width,
+                          int height) noexcept {
+  buffer_ = std::move(buffer);
+  size_ = size;
+  width_ = width;
+  height_ = height;
+}
+
 Image::Image(const Image &other) { *this = other; }
 
 Image &Image::operator=(const Image &other) {
@@ -66,12 +75,7 @@ void Image::load(const char *path) {
   std::size_t size = 0;
   Buffer buffer{static_cast<std::uint8_t *>(image.write_to_memory(&size))};
 
-  // Commit only after decoding succeeds, preserving the previous image on
-  // error.
-  buffer_ = std::move(buffer);
-  size_ = size;
-  width_ = image.width();
-  height_ = image.height();
+  replaceBuffer(std::move(buffer), size, image.width(), image.height());
   channels_ = image.bands();
 };
 
@@ -87,9 +91,7 @@ void Image::save(const char *path) const {
   image.write_to_file(path);
 }
 
-int Image::pixelIndex(int x, int y) const {
-  return (y * width_ + x) * channels_;
-}
+int Image::pixelIndex(int x, int y) const { return pixelIndex(x, y, width_); }
 int Image::pixelIndex(int x, int y, int width) const {
   return (y * width + x) * channels_;
 }
@@ -188,21 +190,11 @@ Image &Image::rotate90(Rotation direction) {
       );
     }
   }
-  buffer_ = std::move(temp);
-  width_ = newWidth;
-  height_ = newHeight;
+  replaceBuffer(std::move(temp), size_, newWidth, newHeight);
   return *this;
 }
 
-Image &Image::resizeNearest(int width, int height) {
-  if (!buffer_) {
-    throw std::runtime_error("cannot resize an empty image");
-  }
-  const std::size_t newSize = checkedBufferSize(width, height, channels_);
-  if (width == width_ && height == height_) {
-    return *this;
-  }
-
+Image &Image::resizeNearest(int width, int height, std::size_t newSize) {
   Buffer temp{static_cast<uint8_t *>(g_malloc(newSize))};
 
   for (int y = 0; y < height; y++) {
@@ -218,19 +210,24 @@ Image &Image::resizeNearest(int width, int height) {
     }
   }
 
-  buffer_ = std::move(temp);
-  size_ = newSize;
-  width_ = width;
-  height_ = height;
+  replaceBuffer(std::move(temp), newSize, width, height);
   return *this;
 };
 
 Image &Image::resize(int width, int height, ResizeFilter filter) {
+  if (!buffer_) {
+    throw std::runtime_error("cannot resize an empty image");
+  }
+  const std::size_t newSize = checkedBufferSize(width, height, channels_);
+  if (width == width_ && height == height_) {
+    return *this;
+  }
+
   switch (filter) {
   case ResizeFilter::NearestNeighbor:
-    return resizeNearest(width, height);
+    return resizeNearest(width, height, newSize);
   case ResizeFilter::Bilinear:
-    return resizeBilinear(width, height);
+    return resizeBilinear(width, height, newSize);
   }
   throw std::invalid_argument("unsupported resize filter");
 }
@@ -265,14 +262,11 @@ Image &Image::cropSquare(int y, int x, int size) {
                 pixelPtr(x, y + cropY), rowSize);
   }
 
-  buffer_ = std::move(temp);
-  size_ = newSize;
-  width_ = size;
-  height_ = size;
+  replaceBuffer(std::move(temp), newSize, size, size);
   return *this;
 }
 
-Image &Image::cropCircle(int x, int y, int size) {
+Image &Image::cropCircle(int y, int x, int size) {
   const std::size_t newSize = checkedBufferSize(size, size, channels_);
 
   Buffer temp{static_cast<std::uint8_t *>(g_malloc0(newSize))};
@@ -301,27 +295,16 @@ Image &Image::cropCircle(int x, int y, int size) {
                 byteCount);
   }
 
-  buffer_ = std::move(temp);
-  width_ = size;
-  height_ = size;
-  size_ = newSize;
+  replaceBuffer(std::move(temp), newSize, size, size);
   return *this;
 }
 
-Image &Image::resizeBilinear(int width, int height) {
+Image &Image::resizeBilinear(int width, int height, std::size_t newSize) {
   struct XInfo {
     int left;
     int right;
     float mix;
   };
-
-  if (!buffer_) {
-    throw std::runtime_error("cannot resize an empty image");
-  }
-  const std::size_t newSize = checkedBufferSize(width, height, channels_);
-  if (width == width_ && height == height_) {
-    return *this;
-  }
 
   const float scaleX = static_cast<float>(width_) / width;
   const float scaleY = static_cast<float>(height_) / height;
@@ -363,9 +346,78 @@ Image &Image::resizeBilinear(int width, int height) {
     }
   }
 
-  buffer_ = std::move(temp);
-  size_ = newSize;
-  width_ = width;
-  height_ = height;
+  replaceBuffer(std::move(temp), newSize, width, height);
+  return *this;
+};
+
+Image &Image::blur(int radius) {
+  if (!buffer_) {
+    throw std::runtime_error("cannot blur an empty image");
+  }
+  if (radius < 0) {
+    throw std::invalid_argument("blur radius cannot be negative");
+  }
+  if (radius == 0) {
+    return *this;
+  }
+
+  Buffer temp{static_cast<uint8_t *>(g_malloc(size_))};
+  const std::size_t stride = static_cast<std::size_t>(width_) * channels_;
+
+  for (int y = 0; y < height_; ++y) {
+    ColorAccumulator accumulator;
+    const std::uint8_t *sourceRow = buffer_.get() + y * stride;
+    std::uint8_t *destinationRow = temp.get() + y * stride;
+    const int initialRight = std::min(radius, width_ - 1);
+
+    for (int sampleX = 0; sampleX <= initialRight; ++sampleX) {
+      accumulator.add(sourceRow + sampleX * channels_, channels_);
+    }
+
+    for (int x = 0; x < width_; ++x) {
+      accumulator.writeAverage(destinationRow + x * channels_, channels_);
+
+      const int removedX = x - radius;
+      const int addedX = x + radius + 1;
+
+      if (removedX >= 0) {
+        accumulator.remove(sourceRow + removedX * channels_, channels_);
+      }
+
+      if (addedX < width_) {
+        accumulator.add(sourceRow + addedX * channels_, channels_);
+      }
+    }
+  }
+
+  std::vector<ColorAccumulator> columns(width_);
+  const int initialBottom = std::min(radius, height_ - 1);
+  for (int sampleY = 0; sampleY <= initialBottom; ++sampleY) {
+    const std::uint8_t *sourceRow = temp.get() + sampleY * stride;
+    for (int x = 0; x < width_; ++x) {
+      columns[x].add(sourceRow + x * channels_, channels_);
+    }
+  }
+
+  for (int y = 0; y < height_; ++y) {
+    const int removedY = y - radius;
+    const int addedY = y + radius + 1;
+    std::uint8_t *destinationRow = buffer_.get() + y * stride;
+    const std::uint8_t *removedRow =
+        removedY >= 0 ? temp.get() + removedY * stride : nullptr;
+    const std::uint8_t *addedRow =
+        addedY < height_ ? temp.get() + addedY * stride : nullptr;
+
+    for (int x = 0; x < width_; ++x) {
+      columns[x].writeAverage(destinationRow + x * channels_, channels_);
+      if (removedY >= 0) {
+        columns[x].remove(removedRow + x * channels_, channels_);
+      }
+      if (addedY < height_) {
+        columns[x].add(addedRow + x * channels_, channels_);
+      }
+    }
+  }
+
   return *this;
 };
