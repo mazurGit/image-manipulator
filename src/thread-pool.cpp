@@ -22,6 +22,8 @@ ThreadPool::~ThreadPool() {
   joinWorkers();
 }
 
+std::size_t ThreadPool::threadCount() const { return workers_.size(); }
+
 void ThreadPool::stop() {
   {
     std::lock_guard<std::mutex> lock(mutex_);

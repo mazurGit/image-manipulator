@@ -14,6 +14,7 @@ struct PixelPosition {
 };
 
 class Image;
+class ThreadPool;
 
 namespace image_io {
 Image load(const char *path);
@@ -61,19 +62,10 @@ public:
   Row operator[](int y) noexcept;
   PixelView at(int y, int x);
 
-  template <typename Func> void forEachPixel(Func func) {
-    for (int y = 0; y < height_; y++) {
-      Row currentRow = (*this)[y];
-      for (int x = 0; x < width_; x++) {
-        PixelView pixel = currentRow[x];
-        if constexpr (std::is_invocable_v<Func &, PixelView, PixelPosition>) {
-          func(pixel, PixelPosition{x, y});
-        } else {
-          func(pixel);
-        }
-      }
-    }
-  }
+  template <typename Func> void forEachPixel(Func func);
+
+  template <typename Func>
+  void forEachPixelParallel(ThreadPool &threadPool, Func func);
 
   // Transformations
   Image &grayscale();
@@ -90,6 +82,9 @@ public:
   Image &blur(int radius);
 
 private:
+  template <typename Func>
+  void forEachPixelInRows(int firstRow, int lastRow, Func func);
+
   friend Image image_io::load(const char *path);
   friend void image_io::save(const Image &image, const char *path);
 
@@ -107,6 +102,8 @@ private:
   Image &cropSquare(int y, int x, int size);
   Image &cropCircle(int y, int x, int size);
 
+  static std::size_t checkedBufferSize(int width, int height, int channels);
+
   void replaceBuffer(Buffer buffer, std::size_t size, int width,
                      int height) noexcept;
 
@@ -117,3 +114,5 @@ private:
   std::uint8_t *pixelPtr(std::uint8_t *buffer, int width, int x, int y);
   Row row(Buffer &buffer, int width, int y) noexcept;
 };
+
+#include "image-iteration.tpp"
