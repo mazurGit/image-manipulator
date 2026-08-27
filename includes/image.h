@@ -13,6 +13,13 @@ struct PixelPosition {
   int y;
 };
 
+class Image;
+
+namespace image_io {
+Image load(const char *path);
+void save(const Image &image, const char *path);
+} // namespace image_io
+
 class Image {
   // Buffer ownership
   struct BufferDeleter {
@@ -83,6 +90,9 @@ public:
   Image &blur(int radius);
 
 private:
+  friend Image image_io::load(const char *path);
+  friend void image_io::save(const Image &image, const char *path);
+
   Buffer buffer_;
   std::size_t size_ = 0;
 

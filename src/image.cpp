@@ -1,5 +1,6 @@
 #include "image.h"
 #include "color-accumulator.h"
+#include "image-io.h"
 #include "pixel-math.h"
 #include "pixel-view.h"
 #include <algorithm>
@@ -9,7 +10,7 @@
 #include <stdexcept>
 #include <utility>
 #include <vector>
-#include <vips/vips8>
+#include <glib.h>
 
 namespace {
 
@@ -65,31 +66,10 @@ Image &Image::operator=(const Image &other) {
 }
 
 void Image::load(const char *path) {
-  auto image = vips::VImage::new_from_file(path)
-                   .colourspace(VIPS_INTERPRETATION_sRGB)
-                   .cast(VIPS_FORMAT_UCHAR);
-  if (image.bands() == 3) {
-    image = image.addalpha();
-  }
-
-  std::size_t size = 0;
-  Buffer buffer{static_cast<std::uint8_t *>(image.write_to_memory(&size))};
-
-  replaceBuffer(std::move(buffer), size, image.width(), image.height());
-  channels_ = image.bands();
+  *this = image_io::load(path);
 };
 
-void Image::save(const char *path) const {
-  if (!buffer_) {
-    throw std::runtime_error("cannot save an empty image");
-  }
-
-  auto image = vips::VImage::new_from_memory(
-      buffer_.get(), size_, width_, height_, channels_, VIPS_FORMAT_UCHAR);
-  image = image.copy(
-      vips::VImage::option()->set("interpretation", VIPS_INTERPRETATION_sRGB));
-  image.write_to_file(path);
-}
+void Image::save(const char *path) const { image_io::save(*this, path); }
 
 int Image::pixelIndex(int x, int y) const { return pixelIndex(x, y, width_); }
 int Image::pixelIndex(int x, int y, int width) const {
