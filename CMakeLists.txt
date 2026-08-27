@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(PkgConfig REQUIRED)
+find_package(Threads REQUIRED)
 pkg_check_modules(VIPS REQUIRED vips-cpp)
 
 add_library(
@@ -16,6 +17,7 @@ add_library(
     src/image-io.cpp
     src/pixel-pipeline.cpp
     src/pixel-view.cpp
+    src/thread-pool.cpp
     src/timer.cpp
 )
 
@@ -33,7 +35,7 @@ target_include_directories(
 target_include_directories(image_engine SYSTEM PUBLIC ${VIPS_INCLUDE_DIRS})
 target_compile_options(image_engine PRIVATE ${VIPS_CFLAGS_OTHER})
 target_link_directories(image_engine PUBLIC ${VIPS_LIBRARY_DIRS})
-target_link_libraries(image_engine PUBLIC ${VIPS_LIBRARIES})
+target_link_libraries(image_engine PUBLIC ${VIPS_LIBRARIES} Threads::Threads)
 target_link_options(image_engine PUBLIC ${VIPS_LDFLAGS_OTHER})
 
 add_executable(playground
