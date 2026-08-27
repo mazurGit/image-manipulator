@@ -23,6 +23,8 @@ public:
   ThreadPool(ThreadPool &&) = delete;
   ThreadPool &operator=(ThreadPool &&) = delete;
 
+  std::size_t threadCount() const;
+
   template <typename Func> auto enqueue(Func &&func) {
     using Function = std::decay_t<Func>;
     using ReturnType = std::invoke_result_t<Function &>;

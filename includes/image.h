@@ -1,9 +1,16 @@
 #pragma once
 
 #include "pixel-view.h"
+#include "thread-pool.h"
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <exception>
+#include <future>
 #include <memory>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 enum class Rotation { CW, CCW };
 enum class ResizeFilter { NearestNeighbor, Bilinear };
@@ -62,16 +69,52 @@ public:
   PixelView at(int y, int x);
 
   template <typename Func> void forEachPixel(Func func) {
-    for (int y = 0; y < height_; y++) {
-      Row currentRow = (*this)[y];
-      for (int x = 0; x < width_; x++) {
-        PixelView pixel = currentRow[x];
-        if constexpr (std::is_invocable_v<Func &, PixelView, PixelPosition>) {
-          func(pixel, PixelPosition{x, y});
-        } else {
-          func(pixel);
+    forEachPixelInRows(0, height_, std::move(func));
+  }
+
+  template <typename Func>
+  void forEachPixelParallel(ThreadPool &threadPool, Func func) {
+    if (height_ <= 0) {
+      return;
+    }
+
+    const std::size_t rowCount = static_cast<std::size_t>(height_);
+    const std::size_t taskCount =
+        std::min(rowCount, threadPool.threadCount());
+    std::vector<std::future<void>> futures;
+    futures.reserve(taskCount);
+
+    try {
+      for (std::size_t taskIndex = 0; taskIndex < taskCount; ++taskIndex) {
+        const int firstRow =
+            static_cast<int>(rowCount * taskIndex / taskCount);
+        const int lastRow =
+            static_cast<int>(rowCount * (taskIndex + 1) / taskCount);
+
+        futures.emplace_back(threadPool.enqueue(
+            [this, firstRow, lastRow, func] {
+              forEachPixelInRows(firstRow, lastRow, func);
+            }));
+      }
+    } catch (...) {
+      for (auto &future : futures) {
+        future.wait();
+      }
+      throw;
+    }
+
+    std::exception_ptr failure;
+    for (auto &future : futures) {
+      try {
+        future.get();
+      } catch (...) {
+        if (!failure) {
+          failure = std::current_exception();
         }
       }
+    }
+    if (failure) {
+      std::rethrow_exception(failure);
     }
   }
 
@@ -90,6 +133,20 @@ public:
   Image &blur(int radius);
 
 private:
+  template <typename Func>
+  void forEachPixelInRows(int firstRow, int lastRow, Func func) {
+    for (int y = firstRow; y < lastRow; y++) {
+      Row currentRow = (*this)[y];
+      for (int x = 0; x < width_; x++) {
+        PixelView pixel = currentRow[x];
+        if constexpr (std::is_invocable_v<Func &, PixelView, PixelPosition>) {
+          func(pixel, PixelPosition{x, y});
+        } else {
+          func(pixel);
+        }
+      }
+    }
+  }
   friend Image image_io::load(const char *path);
   friend void image_io::save(const Image &image, const char *path);
 
