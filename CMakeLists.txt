@@ -13,6 +13,7 @@ add_library(
     STATIC
     src/color-accumulator.cpp
     src/image.cpp
+    src/image-io.cpp
     src/pixel-pipeline.cpp
     src/pixel-view.cpp
     src/timer.cpp

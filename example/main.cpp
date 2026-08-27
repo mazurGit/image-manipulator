@@ -1,5 +1,6 @@
 
 #include <image.h>
+#include <image-io.h>
 #include <pixel-pipeline.h>
 #include <pixel-view.h>
 #include <vips/vips.h>
@@ -10,13 +11,10 @@ int main() {
   }
 
   {
-    Image image;
-    image.load("assets/butterfly.jpeg");
-    PixelPipeline::apply(image, {PixelPipeline::Brightness{20},
-                                 PixelPipeline::Contrast{1.1f},
-                                 PixelPipeline::Invert{}});
-    image.blur(3);
-    image.save("assets/out.jpeg");
+    Image image = image_io::load("assets/butterfly.jpeg");
+    PixelPipeline::apply(image, {PixelPipeline::Brightness{100}});
+    // image.resize(8000, 4000);
+    image_io::save(image, "assets/out.jpeg");
   }
 
   vips_shutdown();
