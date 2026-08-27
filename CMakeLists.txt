@@ -14,7 +14,12 @@ add_library(
     STATIC
     src/color-accumulator.cpp
     src/image.cpp
+    src/image-blur.cpp
+    src/image-crop.cpp
     src/image-io.cpp
+    src/image-point-operations.cpp
+    src/image-resize.cpp
+    src/image-transform.cpp
     src/pixel-pipeline.cpp
     src/pixel-view.cpp
     src/thread-pool.cpp

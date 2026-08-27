@@ -1,16 +1,9 @@
 #pragma once
 
 #include "pixel-view.h"
-#include "thread-pool.h"
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <exception>
-#include <future>
 #include <memory>
-#include <type_traits>
-#include <utility>
-#include <vector>
 
 enum class Rotation { CW, CCW };
 enum class ResizeFilter { NearestNeighbor, Bilinear };
@@ -21,6 +14,7 @@ struct PixelPosition {
 };
 
 class Image;
+class ThreadPool;
 
 namespace image_io {
 Image load(const char *path);
@@ -68,55 +62,10 @@ public:
   Row operator[](int y) noexcept;
   PixelView at(int y, int x);
 
-  template <typename Func> void forEachPixel(Func func) {
-    forEachPixelInRows(0, height_, std::move(func));
-  }
+  template <typename Func> void forEachPixel(Func func);
 
   template <typename Func>
-  void forEachPixelParallel(ThreadPool &threadPool, Func func) {
-    if (height_ <= 0) {
-      return;
-    }
-
-    const std::size_t rowCount = static_cast<std::size_t>(height_);
-    const std::size_t taskCount =
-        std::min(rowCount, threadPool.threadCount());
-    std::vector<std::future<void>> futures;
-    futures.reserve(taskCount);
-
-    try {
-      for (std::size_t taskIndex = 0; taskIndex < taskCount; ++taskIndex) {
-        const int firstRow =
-            static_cast<int>(rowCount * taskIndex / taskCount);
-        const int lastRow =
-            static_cast<int>(rowCount * (taskIndex + 1) / taskCount);
-
-        futures.emplace_back(threadPool.enqueue(
-            [this, firstRow, lastRow, func] {
-              forEachPixelInRows(firstRow, lastRow, func);
-            }));
-      }
-    } catch (...) {
-      for (auto &future : futures) {
-        future.wait();
-      }
-      throw;
-    }
-
-    std::exception_ptr failure;
-    for (auto &future : futures) {
-      try {
-        future.get();
-      } catch (...) {
-        if (!failure) {
-          failure = std::current_exception();
-        }
-      }
-    }
-    if (failure) {
-      std::rethrow_exception(failure);
-    }
-  }
+  void forEachPixelParallel(ThreadPool &threadPool, Func func);
 
   // Transformations
   Image &grayscale();
@@ -134,19 +83,8 @@ public:
 
 private:
   template <typename Func>
-  void forEachPixelInRows(int firstRow, int lastRow, Func func) {
-    for (int y = firstRow; y < lastRow; y++) {
-      Row currentRow = (*this)[y];
-      for (int x = 0; x < width_; x++) {
-        PixelView pixel = currentRow[x];
-        if constexpr (std::is_invocable_v<Func &, PixelView, PixelPosition>) {
-          func(pixel, PixelPosition{x, y});
-        } else {
-          func(pixel);
-        }
-      }
-    }
-  }
+  void forEachPixelInRows(int firstRow, int lastRow, Func func);
+
   friend Image image_io::load(const char *path);
   friend void image_io::save(const Image &image, const char *path);
 
@@ -164,6 +102,8 @@ private:
   Image &cropSquare(int y, int x, int size);
   Image &cropCircle(int y, int x, int size);
 
+  static std::size_t checkedBufferSize(int width, int height, int channels);
+
   void replaceBuffer(Buffer buffer, std::size_t size, int width,
                      int height) noexcept;
 
@@ -174,3 +114,5 @@ private:
   std::uint8_t *pixelPtr(std::uint8_t *buffer, int width, int x, int y);
   Row row(Buffer &buffer, int width, int y) noexcept;
 };
+
+#include "image-iteration.tpp"
